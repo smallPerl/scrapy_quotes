@@ -59,3 +59,28 @@ class QuoteSpider(scrapy.Spider):
 		if next_page is not None:
 			next_page = response.urljoin(next_page)
 			yield scrapy.Request(next_page, callback=self.parse)
+
+# 第四个版本
+import scrapy
+class AuthorSpider(scrapy.Spider):
+	name = 'author'
+	start_urls = ['http://quotes.toscrape.com/']
+
+	def parse(self, response):
+		for href in response.css('.author + a::attr(href)').extract():
+			yield scrapy.Request(response.urljoin(href), callback=self.parse_author)
+
+		next_page = response.css('li.next a::sttr(href)').extract_first()
+		if next_page is not None:
+			next_page = response.urljoin(next_page)
+			yield scrapy.Request(next_page, callback=self.parse)
+
+	def parse_author(self, response):
+		def extract_with_css(query):
+			return response.css(query).extract_first().strip()
+
+		yield {
+			'name': extract_with_css('h3.author-title::text'),
+			'birthdate': extract_with_css('.author-born-date::text'),
+			'bio': extract_with_css('.author-description::text'),
+		}
