@@ -39,7 +39,7 @@
 # 				'tags': quote.css('div.tags a.tag::text').extract()
 # 			}
 
-#第三个版本，自动翻页爬取
+#第三个版本，自动翻页爬取 scrapy crawl author 
 import scrapy
 class QuoteSpider(scrapy.Spider):
 	name = 'quotes'
@@ -60,7 +60,7 @@ class QuoteSpider(scrapy.Spider):
 			next_page = response.urljoin(next_page)
 			yield scrapy.Request(next_page, callback=self.parse)
 
-# 第四个版本
+# 第四个版本  scrapy crawl author 
 import scrapy
 class AuthorSpider(scrapy.Spider):
 	name = 'author'
@@ -84,3 +84,29 @@ class AuthorSpider(scrapy.Spider):
 			'birthdate': extract_with_css('.author-born-date::text'),
 			'bio': extract_with_css('.author-description::text'),
 		}
+
+# 第五个版本: scrapy crawl quotes -o quotes-humor.json -a tag=humor
+# 添加-a 参数， 参数会默认传入spider的__init__方法并作为spider的attribute
+import scrapy
+class QuotesSpider(scrapy.Spider):
+	name = 'quotes'
+
+	def start_requests(self):
+		url = 'http://quotes.toscrape.com/'
+		tag = getattr(self, 'tag', None)
+		if tag is not None:
+			url = url + 'tag/' + tag
+		yield scrapy.Request(url, self.parse)
+
+	def parse(self, response):
+		for quote in response.css('div.quote'):
+			yield {
+				'text': quote.css('span.text::text').extract_first(),
+				'author': quote.css('small.author::text').extract_first(),
+			}
+
+		next_page = response.css('li.next a::attr(href)').extract_first()
+		if next_page is not None:
+			next_page = response.urljoin(next_page)
+			yield scrapy.Request(next_page, self.parse)
+
